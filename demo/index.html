@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Demo</title>
+	<style>
+
+		body {
+			margin: 0;
+			background-color: #111;
+		}
+		body.active {
+			background-color: #fff;
+		}
+		#form-demo {
+			position: relative;
+			padding: .5em;
+		}
+		#form-demo input[type=text] {
+			font-size: 1em;
+			padding: .5em;
+			width: 100%;
+			box-sizing: border-box;
+			background-color: #000;
+			border: none;
+			color: #fff;
+			outline: none;
+		}
+		#form-demo input[type=submit] {
+			border: none;
+			background-color: transparent;
+			font-size: 1em;
+			position: absolute;
+			padding: 1em;
+			right: 0;
+			top: 0;
+			color: #690;
+		}
+
+	</style>
+</head>
+<body>
+
+	<form id="form-demo">
+		<input type="text" name="message">
+		<input type="submit" value="ECHO">
+	</form>
+
+	<script src="../bower_components/jquery/dist/jquery.js"></script>
+	<script src="../src/morsio.js"></script>
+	<script src="../src/morsio.map.js"></script>
+	<script>
+	(function(){
+
+		var app = {};
+
+		app.onSubmit = function(e){
+			e.preventDefault();
+			app.play($(this).find("[name=message]").val());
+		};
+		app.play = $.noop;
+
+		app.form = $("#form-demo");
+		app.form.on("submit", app.onSubmit);
+
+		app.tone = new morsio.Tone({url: "../morse.ogg"});
+		app.tone.ready(function(){
+			app.composer = new morsio.Composer({
+				process: function(on, length){
+					$("body").toggleClass("active", on);
+					app.tone.toggle(on);
+				},
+				complete: function(){
+					console.log("done");
+				}
+			});
+
+			app.play = function(message){
+				app.composer.parse(message).play();
+			};
+		});
+
+	}());
+
+	</script>
+	
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "morsio.js",
+  "version": "0.1.0",
+  "main": "dist/morsio.js",
+  "description": "Library for parsing and sounding morse tones",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "mach3 <http://github.com/mach3>",
+  "license": "MIT",
+  "dependencies": {
+    "grunt-contrib-copy": "^0.5.0"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-concat": "^0.4.0",
+    "grunt-contrib-connect": "^0.7.1",
+    "grunt-contrib-uglify": "^0.4.0"
+  }
+}
