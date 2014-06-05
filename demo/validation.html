@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Demo: Validation</title>
+</head>
+<body>
+
+	<h1>Demo: Validation</h1>
+
+	<form id="form-demo">
+		<input type="text" name="message">
+		<input type="submit">
+	</form>
+
+	<dl id="result">
+		<dt>From:</dt>
+		<dd id="output-from"></dd>
+		<dt>To:</dt>
+		<dd id="output-to"></dd>
+	</dl>
+
+
+	<script src="../bower_components/jquery/dist/jquery.js"></script>
+	<script src="../src/morsio.js"></script>
+	<script src="../src/morsio.map.js"></script>
+	<script src="../src/morsio.validation.js"></script>
+
+	<script>
+	(function(){
+
+		var app = {};
+
+		app.composer = new morsio.Composer({mode: "kana"});
+		app.form = $("#form-demo");
+		app.outputTo = $("#output-to");
+		app.outputFrom = $("#output-from");
+
+		app.init = function(){
+			app.form.on("submit", function(e){
+				e.preventDefault();
+				var message = $(this).find("[name=message]").val();
+				app.outputFrom.text(message);
+				app.outputTo.text(app.composer.validate(message));
+				console.log(app.composer.validate(message));
+			});
+		};
+
+		app.init();
+
+	}());
+	</script>
+	
+</body>
+</html>

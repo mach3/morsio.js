@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo: Recorder</title>
+</head>
+<body>
+
+    <h1>Demo: Recorder</h1>
+
+    <ul>
+        <li>Strike Enter to start/stop recording</li>
+        <li>Strike "T" key to send tone</li>
+    </ul>
+    <p>
+        <strong id="demo-result"></strong>
+    </p>
+
+    <script src="../bower_components/jquery/dist/jquery.js"></script>
+    <script src="../src/morsio.js"></script>
+    <script src="../src/morsio.map.js"></script>
+    <script>
+
+    (function(){
+
+        var app = {};
+
+        app.recorder = new morsio.Recorder();
+        app.composer = new morsio.Composer();
+
+        app.onDone = function(){
+            var message = app.composer.translate(app.recorder.parse());
+            app.result(message);
+        };
+
+        app.result = function(message){
+            $("#demo-result").text(message);
+        };
+
+        app.init = function(){
+
+            $(document).on({
+                "keydown": function(e){
+                    switch(e.keyCode){
+                        case 13:
+                            if(app.recorder.recording){
+                                app.recorder.stop();
+                                app.onDone();
+                                return;
+                            }
+                            app.recorder.start();
+                            app.result("(recording...)");
+                            break;
+                        case 84:
+                            app.recorder.tone(true);
+                            break;
+                        default: break;
+                    }
+                },
+                "keyup": function(e){
+                    if(e.keyCode === 84){
+                        app.recorder.tone(false);
+                    }
+                }
+            });
+        };
+
+        app.init();
+
+    }());
+
+    </script>
+    
+</body>
+</html>

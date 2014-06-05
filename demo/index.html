@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>Demo</title>
+	<title>Demo: Play</title>
 	<style>
 
 		body {
@@ -49,6 +49,7 @@
 	<script src="../bower_components/jquery/dist/jquery.js"></script>
 	<script src="../src/morsio.js"></script>
 	<script src="../src/morsio.map.js"></script>
+	<script src="../src/morsio.validation.js"></script>
 	<script>
 	(function(){
 
@@ -63,7 +64,7 @@
 		app.form = $("#form-demo");
 		app.form.on("submit", app.onSubmit);
 
-		app.tone = new morsio.Tone({url: "../morse.ogg"});
+		app.tone = new morsio.Tone({url: "../src/morse.ogg"});
 		app.tone.ready(function(){
 			app.composer = new morsio.Composer({
 				process: function(on, length){

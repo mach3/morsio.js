@@ -22,7 +22,7 @@
     };
 
     (function(){
-        var api = Composer.prototype;
+        var u, api = Composer.prototype;
 
         /**
          * Defaults:
@@ -76,6 +76,47 @@
         };
 
         /**
+         * Validate message strings, return the validated
+         * @param {String} message
+         * @param {String} defaultChar
+         * @returns {String}
+         */
+        api.validate = function(message, defaultChar){
+            var res, map, valid;
+
+            defaultChar = defaultChar || " ";
+            res = [];
+            map = this.map();
+            valid = morsio.validation[this.config("mode")] || {};
+
+            if(! map){
+                return message;
+            }
+
+            message.split("").forEach(function(s){
+                var code, dest;
+
+                code = s.charCodeAt(0);
+
+                if(code in map){
+                    res.push(s);
+                    return;
+                }
+                if(code in valid){
+                    dest = valid[code];
+                    dest = $.isArray(dest) ? dest : [dest];
+                    dest.forEach(function(value){
+                        res.push(String.fromCharCode(value));
+                    });
+                    return;
+                }
+                res.push(defaultChar);
+            });
+
+            return res.join("");
+        };
+
+        /**
          * Parse string to morse tones
          * @param {String} message
          */
@@ -86,7 +127,7 @@
             map = this.map();
             this.codes = [];
 
-            message.toLowerCase().split("").forEach(function(s){
+            this.validate(message).toLowerCase().split("").forEach(function(s){
                 var item = map[s.charCodeAt(0)];
                 if(! item){
                     my.codes.push([false, 7]);
@@ -115,12 +156,13 @@
         };
 
         /**
-         * Start playing message
+         * Start playing parsed message
+         * If 'codes' passed, play it
          */
-        api.play = function(){
+        api.play = function(codes){
             if(! this.playing){
                 this.playing = true;
-                this._codes = this.codes;
+                this._codes = codes || this.codes;
                 this.process();
             }
             return this;
@@ -150,6 +192,62 @@
             }
             o.process.apply(this, code);
             this.timer = setTimeout(this.process, code[1] * o.time);
+        };
+
+        /**
+         * Translate tones to strings
+         * @param {Array} tones
+         */
+        api.translate = function(tones){
+            var map, message, temp, push;
+
+            tones = tones || this.tones;
+            map = this.map();
+            message = [];
+            temp = [];
+            push = function(t){
+                t = "" + t.join("");
+                var i = u.getKeyByValue(t, map) || "32";
+                message.push(String.fromCharCode(i));
+            };
+
+            tones.forEach(function(tone){
+                if(! tone[0] && tone[1] > 1){
+                    push(temp);
+                    temp = [];
+                    return;
+                }
+                if(!! tone[0]){
+                    temp.push(tone[1]);
+                }
+            });
+
+            push(temp);
+
+            return message.join("");
+        };
+
+        /**
+         * Utility
+         */
+        u = {
+            /**
+             * Get key name string by value from object
+             * @param {*} value
+             * @param {Object} obj
+             * @returns {String}
+             */
+            getKeyByValue: function(value, obj){
+                var key = null;
+                for(i in obj){
+                    if(! obj.hasOwnProperty(i)){ continue; }
+                    if(obj[i] === value){
+                        key = i;
+                        break;
+                    }
+                }
+                return key;
+            }
         };
     }());
     
@@ -278,6 +376,133 @@
         };
     }());
 
+
+
+    /**
+     * Recorder
+     * --------
+     * @class Record the morse tones
+     */
+    var Recorder = morsio.Recorder = function(options){
+        this._construct.apply(this, arguments);
+    };
+
+    (function(){
+        var u, api = Recorder.prototype;
+
+        api.defaults = {
+            mode: "alpha"
+        };
+
+        api.options = null;
+        api.source = [];
+        api.tones = [];
+        api.recording = false;
+
+        /**
+         * Constructor
+         * @constructor
+         */
+        api._construct = function(options){
+            this.config(this.defaults).config(options);
+        };
+
+        /**
+         * Configure options
+         */
+        api.config = function(options){
+            this.options = $.extend(true, {}, this.options, options);
+            return this;
+        };
+
+        /**
+         * Start recording
+         */
+        api.start = function(){
+            if(this.recording){
+                return;
+            }
+            this.source = [];
+            this.recording = true;
+        };
+
+        /**
+         * Stop recording
+         */
+        api.stop = function(){
+            if(! this.recording){
+                return;
+            }
+            this.recording = false;
+            this.parse();
+        };
+
+        /**
+         * Send tone
+         * @param {Boolean} on
+         */
+        api.tone = function(on){
+            if(! this.recording){
+                return;
+            }
+            this.source.push([on, (new Date()).getTime()]);
+        };
+
+        /**
+         * Parse tones to the rounded
+         * @returns {Array}
+         */
+        api.parse = function(){
+            var src, tones, min, durations;
+
+            src = this.source;
+            tones = [];
+            min = null;
+
+            src.forEach(function(tone, i){
+                var next, time;
+                next = src[i+1];
+                if(next === void 0){
+                    return false;
+                }
+                time = next[1] - tone[1];
+                tones.push([tone[0], time]);
+                min = min ? Math.min(min, time) : time;
+            });
+
+            durations = [min, min*3];
+
+            tones = tones.map(function(tone){
+                var i = u.roundIndex(tone[1], durations);
+                tone[1] = (i === 2) ? 7 
+                : (i === 1) ? 3 : 1;
+                return tone;
+            });
+
+            this.tones = tones;
+            return this.tones;
+        };
+
+        /**
+         * Utilities
+         */
+        u = {
+            /**
+             * Search the nearest value from array
+             * and returns as its index
+             * @param {Number} num
+             * @param {Array} nums
+             */
+            roundIndex: function(num, nums){
+                var diffs = [];
+                nums.forEach(function(n, i){
+                    diffs[i] = Math.abs(num - n);
+                });
+                return diffs.indexOf(Math.min.apply(null, diffs));
+            }
+        };
+    }());
+
     /**
      * Export
      */
@@ -288,4 +513,8 @@
 (function($, global){
 var morsio = global.morsio = global.morsio || {};
 morsio.map = {"alpha":{"97":"13","98":"3111","99":"3131","100":"311","101":"1","102":"1131","103":"331","104":"1111","105":"11","106":"1333","107":"313","108":"1311","109":"33","110":"31","111":"333","112":"1331","113":"3313","114":"131","115":"111","116":"3","117":"113","118":"1113","119":"133","120":"3113","121":"3133","122":"3311"},"num":{"48":"33333","49":"13333","50":"11333","51":"11133","52":"11113","53":"11111","54":"31111","55":"33111","56":"33311","57":"33331"},"symbol":{"33":"313133","40":"31331","41":"313313","44":"331133","45":"311113","46":"131313","47":"31131","63":"113311","64":"133131","72,72":"11111111"},"kana":{"12443":"11","12444":"11331","12450":"33133","12452":"13","12454":"113","12456":"31333","12458":"13111","12459":"1311","12461":"31311","12463":"1113","12465":"3133","12467":"3333","12469":"31313","12471":"33131","12473":"33313","12475":"13331","12477":"3331","12479":"31","12481":"1131","12484":"1331","12486":"13133","12488":"11311","12490":"131","12491":"3131","12492":"1111","12493":"3313","12494":"1133","12495":"3111","12498":"33113","12501":"3311","12504":"1","12507":"311","12510":"3113","12511":"11313","12512":"3","12513":"31113","12514":"31131","12516":"133","12518":"31133","12520":"33","12521":"111","12522":"331","12523":"31331","12524":"333","12525":"1313","12527":"313","12528":"13113","12529":"13311","12530":"1333","12531":"13131"}};
+}(jQuery, window));
+(function($, global){
+var morsio = global.morsio = global.morsio || {};
+morsio.validation = {"kana":{"12353":["12450"],"12354":["12450"],"12355":["12452"],"12356":["12452"],"12357":["12454"],"12358":["12454"],"12359":["12456"],"12360":["12456"],"12361":["12458"],"12362":["12458"],"12363":["12459"],"12364":["12459","12443"],"12365":["12461"],"12366":["12461","12443"],"12367":["12463"],"12368":["12463","12443"],"12369":["12465"],"12370":["12465","12443"],"12371":["12467"],"12372":["12467","12443"],"12373":["12469"],"12374":["12469","12443"],"12375":["12471"],"12376":["12471","12443"],"12377":["12473"],"12378":["12473","12443"],"12379":["12475"],"12380":["12475","12443"],"12381":["12477"],"12382":["12477","12443"],"12383":["12479"],"12384":["12479","12443"],"12385":["12481"],"12386":["12481","12443"],"12387":["12484"],"12388":["12484"],"12389":["12484","12443"],"12390":["12486"],"12391":["12486","12443"],"12392":["12488"],"12393":["12488","12443"],"12394":["12490"],"12395":["12491"],"12396":["12492"],"12397":["12493"],"12398":["12494"],"12399":["12495"],"12400":["12495","12443"],"12401":["12495","12444"],"12402":["12498"],"12403":["12498","12443"],"12404":["12498","12444"],"12405":["12501"],"12406":["12501","12443"],"12407":["12501","12444"],"12408":["12504"],"12409":["12504","12443"],"12410":["12504","12444"],"12411":["12507"],"12412":["12507","12443"],"12413":["12507","12444"],"12414":["12510"],"12415":["12511"],"12416":["12512"],"12417":["12513"],"12418":["12514"],"12420":["12516"],"12422":["12518"],"12424":["12520"],"12425":["12521"],"12426":["12522"],"12427":["12523"],"12428":["12524"],"12429":["12525"],"12431":["12527"],"12432":["12528"],"12433":["12529"],"12434":["12530"],"12435":["12531"],"12449":["12450"],"12451":["12452"],"12453":["12454"],"12455":["12456"],"12457":["12458"],"12460":["12459","12443"],"12462":["12461","12443"],"12464":["12463","12443"],"12466":["12465","12443"],"12468":["12467","12443"],"12470":["12469","12443"],"12472":["12471","12443"],"12474":["12473","12443"],"12476":["12475","12443"],"12478":["12477","12443"],"12480":["12479","12443"],"12482":["12481","12443"],"12483":["12484"],"12485":["12484","12443"],"12487":["12486","12443"],"12489":["12488","12443"],"12496":["12495","12443"],"12497":["12495","12444"],"12499":["12498","12443"],"12500":["12498","12444"],"12502":["12501","12443"],"12503":["12501","12444"],"12505":["12504","12443"],"12506":["12504","12444"],"12508":["12507","12443"],"12509":["12507","12444"],"12532":["12454","12443"]}};
 }(jQuery, window));

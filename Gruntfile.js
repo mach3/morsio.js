@@ -25,7 +25,7 @@ module.exports = function(grunt){
                     preserveComments: "some"
                 },
                 files: {
-                    "dist/morsio.min.js": ["src/morsio.js", "src/morsio.map.js"]
+                    "dist/morsio.min.js": ["src/morsio.js", "src/morsio.map.js", "src/morsio.validation.js"]
                 }
             }
         },
@@ -35,7 +35,7 @@ module.exports = function(grunt){
                     banner: banner
                 },
                 files: {
-                    "dist/morsio.js": ["src/morsio.js", "src/morsio.map.js"]
+                    "dist/morsio.js": ["src/morsio.js", "src/morsio.map.js", "src/morsio.validation.js"]
                 }
             }
         },

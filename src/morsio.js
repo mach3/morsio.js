@@ -12,7 +12,7 @@
     };
 
     (function(){
-        var api = Composer.prototype;
+        var u, api = Composer.prototype;
 
         /**
          * Defaults:
@@ -66,6 +66,47 @@
         };
 
         /**
+         * Validate message strings, return the validated
+         * @param {String} message
+         * @param {String} defaultChar
+         * @returns {String}
+         */
+        api.validate = function(message, defaultChar){
+            var res, map, valid;
+
+            defaultChar = defaultChar || " ";
+            res = [];
+            map = this.map();
+            valid = morsio.validation[this.config("mode")] || {};
+
+            if(! map){
+                return message;
+            }
+
+            message.split("").forEach(function(s){
+                var code, dest;
+
+                code = s.charCodeAt(0);
+
+                if(code in map){
+                    res.push(s);
+                    return;
+                }
+                if(code in valid){
+                    dest = valid[code];
+                    dest = $.isArray(dest) ? dest : [dest];
+                    dest.forEach(function(value){
+                        res.push(String.fromCharCode(value));
+                    });
+                    return;
+                }
+                res.push(defaultChar);
+            });
+
+            return res.join("");
+        };
+
+        /**
          * Parse string to morse tones
          * @param {String} message
          */
@@ -76,7 +117,7 @@
             map = this.map();
             this.codes = [];
 
-            message.toLowerCase().split("").forEach(function(s){
+            this.validate(message).toLowerCase().split("").forEach(function(s){
                 var item = map[s.charCodeAt(0)];
                 if(! item){
                     my.codes.push([false, 7]);
@@ -105,12 +146,13 @@
         };
 
         /**
-         * Start playing message
+         * Start playing parsed message
+         * If 'codes' passed, play it
          */
-        api.play = function(){
+        api.play = function(codes){
             if(! this.playing){
                 this.playing = true;
-                this._codes = this.codes;
+                this._codes = codes || this.codes;
                 this.process();
             }
             return this;
@@ -140,6 +182,62 @@
             }
             o.process.apply(this, code);
             this.timer = setTimeout(this.process, code[1] * o.time);
+        };
+
+        /**
+         * Translate tones to strings
+         * @param {Array} tones
+         */
+        api.translate = function(tones){
+            var map, message, temp, push;
+
+            tones = tones || this.tones;
+            map = this.map();
+            message = [];
+            temp = [];
+            push = function(t){
+                t = "" + t.join("");
+                var i = u.getKeyByValue(t, map) || "32";
+                message.push(String.fromCharCode(i));
+            };
+
+            tones.forEach(function(tone){
+                if(! tone[0] && tone[1] > 1){
+                    push(temp);
+                    temp = [];
+                    return;
+                }
+                if(!! tone[0]){
+                    temp.push(tone[1]);
+                }
+            });
+
+            push(temp);
+
+            return message.join("");
+        };
+
+        /**
+         * Utility
+         */
+        u = {
+            /**
+             * Get key name string by value from object
+             * @param {*} value
+             * @param {Object} obj
+             * @returns {String}
+             */
+            getKeyByValue: function(value, obj){
+                var key = null;
+                for(i in obj){
+                    if(! obj.hasOwnProperty(i)){ continue; }
+                    if(obj[i] === value){
+                        key = i;
+                        break;
+                    }
+                }
+                return key;
+            }
         };
     }());
     
@@ -265,6 +363,133 @@
          */
         api.toggle = function(on){
             this.source.gain.value = on ? 1 : 0;
+        };
+    }());
+
+
+
+    /**
+     * Recorder
+     * --------
+     * @class Record the morse tones
+     */
+    var Recorder = morsio.Recorder = function(options){
+        this._construct.apply(this, arguments);
+    };
+
+    (function(){
+        var u, api = Recorder.prototype;
+
+        api.defaults = {
+            mode: "alpha"
+        };
+
+        api.options = null;
+        api.source = [];
+        api.tones = [];
+        api.recording = false;
+
+        /**
+         * Constructor
+         * @constructor
+         */
+        api._construct = function(options){
+            this.config(this.defaults).config(options);
+        };
+
+        /**
+         * Configure options
+         */
+        api.config = function(options){
+            this.options = $.extend(true, {}, this.options, options);
+            return this;
+        };
+
+        /**
+         * Start recording
+         */
+        api.start = function(){
+            if(this.recording){
+                return;
+            }
+            this.source = [];
+            this.recording = true;
+        };
+
+        /**
+         * Stop recording
+         */
+        api.stop = function(){
+            if(! this.recording){
+                return;
+            }
+            this.recording = false;
+            this.parse();
+        };
+
+        /**
+         * Send tone
+         * @param {Boolean} on
+         */
+        api.tone = function(on){
+            if(! this.recording){
+                return;
+            }
+            this.source.push([on, (new Date()).getTime()]);
+        };
+
+        /**
+         * Parse tones to the rounded
+         * @returns {Array}
+         */
+        api.parse = function(){
+            var src, tones, min, durations;
+
+            src = this.source;
+            tones = [];
+            min = null;
+
+            src.forEach(function(tone, i){
+                var next, time;
+                next = src[i+1];
+                if(next === void 0){
+                    return false;
+                }
+                time = next[1] - tone[1];
+                tones.push([tone[0], time]);
+                min = min ? Math.min(min, time) : time;
+            });
+
+            durations = [min, min*3];
+
+            tones = tones.map(function(tone){
+                var i = u.roundIndex(tone[1], durations);
+                tone[1] = (i === 2) ? 7 
+                : (i === 1) ? 3 : 1;
+                return tone;
+            });
+
+            this.tones = tones;
+            return this.tones;
+        };
+
+        /**
+         * Utilities
+         */
+        u = {
+            /**
+             * Search the nearest value from array
+             * and returns as its index
+             * @param {Number} num
+             * @param {Array} nums
+             */
+            roundIndex: function(num, nums){
+                var diffs = [];
+                nums.forEach(function(n, i){
+                    diffs[i] = Math.abs(num - n);
+                });
+                return diffs.indexOf(Math.min.apply(null, diffs));
+            }
         };
     }());
 
