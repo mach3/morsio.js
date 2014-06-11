@@ -39,10 +39,11 @@
         };
 
         api.options = null;
-        api.codes = null;
-        api._codes = null;
+        api.tones = null;
+        api._tones = null;
         api.playing = false;
         api.timer = null;
+        api.regMode = /^([a-z]+)\:/;
 
         /**
          * Constructor
@@ -93,7 +94,7 @@
                 return message;
             }
 
-            message.split("").forEach(function(s){
+            message.toLowerCase().split("").forEach(function(s){
                 var code, dest;
 
                 code = s.charCodeAt(0);
@@ -121,25 +122,18 @@
          * @param {String} message
          */
         api.parse = function(message){
-            var my, map;
+            var my, map, tones;
 
-            my = this,
+            my = this;
             map = this.map();
-            this.codes = [];
+            tones = [];
 
             this.validate(message).toLowerCase().split("").forEach(function(s){
-                var item = map[s.charCodeAt(0)];
-                if(! item){
-                    my.codes.push([false, 7]);
-                    return;
-                }
-                item.split("").forEach(function(code){
-                    code = parseInt(code, 10);
-                    my.codes.push([true, code]);
-                    my.codes.push([false, 1]);
-                });
-                my.codes.push([false, 3]);
+                var item = map[s.charCodeAt(0)] || ".";
+                tones.push(item);
             });
+
+            this.tones = tones.join(".");
 
             return this;
         };
@@ -148,24 +142,46 @@
          * Get map to convert message
          * @returns {Object}
          */
-        api.map = function(){
+        api.map = function(mode){
             var src, map = {};
             src = morsio.map;
-            $.extend(map, src.symbol, src.num, src[this.config("mode")]);
+            mode = mode || this.config("mode");
+            $.extend(map, src.symbol, src.num, src[mode]);
+            // this.config("mode")]);
             return map;
         };
 
         /**
          * Start playing parsed message
-         * If 'codes' passed, play it
+         * If 'tones' passed, play it
          */
-        api.play = function(codes){
+        api.play = function(tones){
             if(! this.playing){
                 this.playing = true;
-                this._codes = codes || this.codes;
+                // create play data
+                tones = tones || this.tones;
+                this._tones = this.parseTones(tones);
                 this.process();
             }
             return this;
+        };
+
+        /**
+         * Parse tones string to array data
+         * @param {String} tones
+         * @returns {Array}
+         */
+        api.parseTones = function(tones){
+            var data = [];
+            tones.replace(this.regMode, "").split("").forEach(function(tone){
+                tone = parseInt(tone, 10);
+                if(! tone){
+                    return data.push([false, 3]);
+                }
+                data.push([true, tone]);
+                data.push([false, 1]);
+            });
+            return data;
         };
 
         /**
@@ -180,49 +196,43 @@
          * Function for each process
          */
         api.process = function(){
-            var code, o = this.options;
+            var tones, o = this.options;
             if(! this.playing){
                 return;
             }
-            code = this._codes.shift();
-            if(! this._codes.length || ! code.length){
+            tones = this._tones.shift();
+            if(tones){
+                o.process.apply(this, tones);
+            }
+            if(! this._tones.length){
                 o.complete();
                 this.playing = false;
                 return;
             }
-            o.process.apply(this, code);
-            this.timer = setTimeout(this.process, code[1] * o.time);
+            this.timer = setTimeout(this.process, tones[1] * o.time);
         };
 
         /**
-         * Translate tones to strings
-         * @param {Array} tones
+         * Translate tones to message strings 
+         * @param {String} tones
+         * @return {String} message
          */
         api.translate = function(tones){
-            var map, message, temp, push;
+            var my, map, message;
 
             tones = tones || this.tones;
-            map = this.map();
+            my = this;
+            map = (function(){
+                var m = tones.match(my.regMode);
+                tones = tones.replace(my.regMode, "");
+                return my.map(m ? m[1] : null);
+            }());
             message = [];
-            temp = [];
-            push = function(t){
-                t = "" + t.join("");
-                var i = u.getKeyByValue(t, map) || "32";
+
+            tones.split(".").forEach(function(tone){
+                var i = u.getKeyByValue(tone, map) || "32";
                 message.push(String.fromCharCode(i));
-            };
-
-            tones.forEach(function(tone){
-                if(! tone[0] && tone[1] > 1){
-                    push(temp);
-                    temp = [];
-                    return;
-                }
-                if(!! tone[0]){
-                    temp.push(tone[1]);
-                }
             });
-
-            push(temp);
 
             return message.join("");
         };
@@ -396,7 +406,7 @@
 
         api.options = null;
         api.source = [];
-        api.tones = [];
+        api.tones = null;
         api.recording = false;
 
         /**
@@ -449,11 +459,11 @@
         };
 
         /**
-         * Parse tones to the rounded
-         * @returns {Array}
+         * Parse tones to the rounded, get tones string
+         * @returns {String}
          */
         api.parse = function(){
-            var src, tones, min, durations;
+            var src, tones, min, durations, res;
 
             src = this.source;
             tones = [];
@@ -463,7 +473,7 @@
                 var next, time;
                 next = src[i+1];
                 if(next === void 0){
-                    return false;
+                    return tones.push([false, 0]);
                 }
                 time = next[1] - tone[1];
                 tones.push([tone[0], time]);
@@ -471,15 +481,20 @@
             });
 
             durations = [min, min*3];
+            res = [];
 
-            tones = tones.map(function(tone){
-                var i = u.roundIndex(tone[1], durations);
-                tone[1] = (i === 2) ? 7 
-                : (i === 1) ? 3 : 1;
-                return tone;
+            tones.forEach(function(tone, i){
+                tone[1] = u.roundIndex(tone[1], durations) ? 3 : 1;
+                var prev = tones[i-1];
+                if(! tone[0]){
+                    res.push(prev[1]);
+                    if(tone[1] > 1){
+                        return res.push(".");
+                    }
+                }
             });
 
-            this.tones = tones;
+            this.tones = res.join("");
             return this.tones;
         };
 
@@ -499,6 +514,14 @@
                     diffs[i] = Math.abs(num - n);
                 });
                 return diffs.indexOf(Math.min.apply(null, diffs));
+            },
+
+            combine: function(keys, values){
+                var o = [];
+                keys.forEach(function(key, i){
+                    o[key] = values[i];
+                });
+                return o;
             }
         };
     }());

@@ -67,6 +67,7 @@
 		app.tone = new morsio.Tone({url: "../src/morse.ogg"});
 		app.tone.ready(function(){
 			app.composer = new morsio.Composer({
+				mode: "kana",
 				process: function(on, length){
 					$("body").toggleClass("active", on);
 					app.tone.toggle(on);
