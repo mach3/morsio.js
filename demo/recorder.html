@@ -26,7 +26,7 @@
         var app = {};
 
         app.recorder = new morsio.Recorder();
-        app.composer = new morsio.Composer();
+        app.composer = new morsio.Composer({mode: "kana"});
 
         app.onDone = function(){
             var message = app.composer.translate(app.recorder.parse());
