@@ -163,7 +163,7 @@
          */
         api.parseTones = function(tones){
             var data = [];
-            tones.replace(this.regMode, "").split("").forEach(function(tone){
+            !! tones && tones.replace(this.regMode, "").split("").forEach(function(tone){
                 tone = parseInt(tone, 10);
                 if(! tone){
                     return data.push([false, 3]);
@@ -225,6 +225,14 @@
             });
 
             return message.join("");
+        };
+
+        /**
+         * Clear composed data
+         */
+        api.clear = function(){
+            this.tones = null;
+            this._tones = null;
         };
 
         /**
@@ -446,6 +454,14 @@
                 return;
             }
             this.source.push([on, (new Date()).getTime()]);
+        };
+
+        /**
+         * Clear recorded data
+         */
+        api.clear = function(){
+            this.source = [];
+            this.tones = null;
         };
 
         /**
