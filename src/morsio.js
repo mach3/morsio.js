@@ -210,7 +210,7 @@
         api.translate = function(tones){
             var my, map, message;
 
-            tones = tones || this.tones;
+            tones = tones || this.tones || "";
             my = this;
             map = (function(){
                 var m = tones.match(my.regMode);

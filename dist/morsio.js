@@ -3,7 +3,7 @@
  * ---------
  * Library for parsing and sounding morse tones
  *
- * @version 0.2.1
+ * @version 0.2.1 (2014/06/25)
  * @license MIT
  * @author mach3 <http://github.com/mach3>
  * @require jquery#1
@@ -220,7 +220,7 @@
         api.translate = function(tones){
             var my, map, message;
 
-            tones = tones || this.tones;
+            tones = tones || this.tones || "";
             my = this;
             map = (function(){
                 var m = tones.match(my.regMode);
