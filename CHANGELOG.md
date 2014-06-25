@@ -2,7 +2,7 @@
 # Change Log
 
 
-## Latest (2014-06-25)
+## 0.2.2 (2014-06-25)
 
 - Composer.translate: Ignore error when message is empty 
 

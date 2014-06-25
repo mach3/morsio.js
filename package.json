@@ -1,6 +1,6 @@
 {
   "name": "morsio.js",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "dist/morsio.js",
   "description": "Library for parsing and sounding morse tones",
   "scripts": {
