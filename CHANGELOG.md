@@ -1,6 +1,9 @@
 
 # Change Log
 
+## 0.2.3 (2014-07-14)
+
+- add `Composer.load()` to Load tones string and initialize
 
 ## 0.2.2 (2014-06-25)
 
