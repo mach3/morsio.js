@@ -137,7 +137,6 @@
             src = morsio.map;
             mode = mode || this.config("mode");
             $.extend(map, src.symbol, src.num, src[mode]);
-            // this.config("mode")]);
             return map;
         };
 
@@ -233,6 +232,25 @@
         api.clear = function(){
             this.tones = null;
             this._tones = null;
+        };
+
+        /**
+         * Load tones string and initialize
+         * @param {String} tones
+         * @returns {Composer|Boolean}
+         */
+        api.load = function(tones){
+            var my = this;
+
+            if(! /^([\w]+:)?[\d\.]+$/.test(tones)){
+                return false;
+            }
+            this.config("mode", (function(){
+                var m = tones.match(my.regMode);
+                return m ? m[1] : my.config("mode");
+            }()));
+            this.tones = tones.replace(my.regMode, "");
+            return this;
         };
 
         /**
