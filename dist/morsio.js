@@ -3,7 +3,7 @@
  * ---------
  * Library for parsing and sounding morse tones
  *
- * @version 0.2.3 (2014/07/14)
+ * @version 0.2.3 (2014/07/25)
  * @license MIT
  * @author mach3 <http://github.com/mach3>
  * @require jquery#1
@@ -313,6 +313,7 @@
 
         api.context = null;
         api.source = null;
+        api.gainNode = null;
 
         /**
          * Constructor
@@ -342,7 +343,7 @@
             this.context = new AudioContext();
             handler = function(e){
                 my.context.decodeAudioData(e.target.response, function(buffer){
-                    my.source = my._getSource(buffer, my.context);
+                    my._getSource(buffer, my.context);
                     if($.isFunction(my.onLoaded)){
                         my.onLoaded.call(my);
                         my.onLoaded = null;
@@ -359,20 +360,20 @@
             return this;
         };
 
-
         /**
          * Get BufferSource by buffer and context
          * @param {AudioBuffer} buffer
          * @param {AudioContext} context
          */
         api._getSource = function(buffer, context){
-            var source = context.createBufferSource();
-            source.buffer = buffer;
-            source.connect(context.destination);
-            source.loop = true;
-            source.gain.value = 0;
-            source.noteOn(0);
-            return source;
+            this.gainNode = "createGain" in context ? context.createGain() : context.createGainNode();
+            this.gainNode.connect(context.destination);
+            this.gainNode.gain.value = 0;
+            this.source = context.createBufferSource();
+            this.source.buffer = buffer;
+            this.source.connect(this.gainNode);
+            this.source.loop = true;
+            this.source.start();
         };
 
         /**
@@ -408,10 +409,9 @@
          * @param {Boolean} on
          */
         api.toggle = function(on){
-            this.source.gain.value = on ? 1 : 0;
+            this.gainNode.gain.value = on ? 1 : 0;
         };
     }());
-
 
 
     /**

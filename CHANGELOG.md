@@ -1,6 +1,10 @@
 
 # Change Log
 
+## Latest
+
+- Fix bug in gainNode
+
 ## 0.2.3 (2014-07-14)
 
 - add `Composer.load()` to Load tones string and initialize
