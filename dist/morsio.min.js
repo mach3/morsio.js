@@ -3,7 +3,7 @@
  * ---------
  * Library for parsing and sounding morse tones
  *
- * @version 0.2.3 (2014/07/25)
+ * @version 0.2.4 (2014/07/25)
  * @license MIT
  * @author mach3 <http://github.com/mach3>
  * @require jquery#1
