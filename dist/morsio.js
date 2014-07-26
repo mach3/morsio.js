@@ -3,7 +3,7 @@
  * ---------
  * Library for parsing and sounding morse tones
  *
- * @version 0.2.4 (2014/07/25)
+ * @version 0.2.5 (2014/07/26)
  * @license MIT
  * @author mach3 <http://github.com/mach3>
  * @require jquery#1
@@ -394,14 +394,14 @@
          * Sound tone by setting gain to 1
          */
         api.on = function(){
-            this.source.gain.value = 1;
+            this.toggle(true);
         };
 
         /**
          * Stop tone by setting gain to 0
          */
         api.off = function(){
-            this.source.gain.value = 0;
+            this.toggle(false);
         };
 
         /**

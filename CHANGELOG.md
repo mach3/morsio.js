@@ -1,6 +1,10 @@
 
 # Change Log
 
+## 0.2.5 (2014-07-26)
+
+- Fix bug in `Tone.on|off()`
+
 ## 0.2.4 (2014-07-25)
 
 - Fix bug in gainNode
