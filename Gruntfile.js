@@ -12,7 +12,6 @@ module.exports = function(grunt){
             dev: {
                 options: {
                     base: "./",
-                    hostname: "localhost",
                     port: 8080,
                     keepalive: true
                 }
@@ -43,7 +42,7 @@ module.exports = function(grunt){
             dist: {
                 expand: true,
                 cwd: "src/",
-                src: "morse.ogg",
+                src: "morse.mp3",
                 dest: "dist/"
             }
         }

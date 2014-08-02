@@ -1,5 +1,12 @@
 (function($, global){
 
+    global.AudioContext = global.AudioContext || global.webkitAudioContext;
+
+
+    /**
+     * morsio
+     * ------
+     */
     var morsio = {};
 
     /**
@@ -287,120 +294,117 @@
     };
 
     (function(){
-        var api = Tone.prototype;
+        var u, api = Tone.prototype;
 
-        /**
-         * Defaults:
-         * - {String} url : URL of sound file
-         */
         api.defaults = {
-            url: "morse.ogg"
+            url: "morse.mp3"
         };
 
         api.options = null;
-        api.loaded = false;
-        api.onLoaded = null;
+        api.touchable = (void 0 !== window.ontouchstart);
 
         api.context = null;
         api.source = null;
-        api.gainNode = null;
+        api.gain = null;
 
-        /**
-         * Constructor
-         * @constructor
-         * @param {Object} options
-         */
+        api.initialized = false;
+        api.onReady = $.noop;
+
         api._construct = function(options){
+            var my = this;
+
+            u.bindObject(this, ["onLoad", "start"]);
             this.config(this.defaults).config(options);
-            this.load();
         };
 
-        /**
-         * Configure options
-         * @alias Composer.prototype.config
-         */
-        api.config = function(key, value){
+        api.config = function(){
             return Composer.prototype.config.apply(this, arguments);
         };
 
-        /**
-         * Load sound file
-         */
-        api.load = function(){
-            var my, req, onload;
+        api.load = function(url){
+            var res;
 
-            my = this;
-            this.context = new AudioContext();
-            handler = function(e){
-                my.context.decodeAudioData(e.target.response, function(buffer){
-                    my._getSource(buffer, my.context);
-                    if($.isFunction(my.onLoaded)){
-                        my.onLoaded.call(my);
-                        my.onLoaded = null;
-                    }
-                });
-            };
+            url = url || this.config("url");
+            res = new XMLHttpRequest();
+            res.open("GET", url);
+            res.responseType = "arraybuffer";
+            res.addEventListener("load", this.onLoad, false);
+            res.send();
 
-            req = new XMLHttpRequest();
-            req.open("GET", this.config("url"));
-            req.responseType = "arraybuffer";
-            req.addEventListener("load", handler);
-            req.send();
-
-            return this;
-        };
-
-        /**
-         * Get BufferSource by buffer and context
-         * @param {AudioBuffer} buffer
-         * @param {AudioContext} context
-         */
-        api._getSource = function(buffer, context){
-            this.gainNode = "createGain" in context ? context.createGain() : context.createGainNode();
-            this.gainNode.connect(context.destination);
-            this.gainNode.gain.value = 0;
-            this.source = context.createBufferSource();
-            this.source.buffer = buffer;
-            this.source.connect(this.gainNode);
-            this.source.loop = true;
-            this.source.start();
-        };
-
-        /**
-         * Ready for loading sound data
-         * If already loaded, imidiately run callback
-         * @param {Function} callback
-         */
-        api.ready = function(callback){
-            if(this.loaded){
-                callback.call(this);
-                return this;
+            if(this.touchable){
+                window.addEventListener("touchstart", this.start, false);
             }
-            this.onLoaded = callback;
+
             return this;
         };
 
-        /**
-         * Sound tone by setting gain to 1
-         */
+        api.onLoad = function(e){
+            var my = this;
+
+            this.context = new AudioContext();
+            this.context.decodeAudioData(e.target.response, function(buffer){
+
+                my.source = my.context.createBufferSource();
+                my.source.buffer = buffer;
+                my.source.loop = true;
+
+                my.gain = my.context.createGain();
+                my.source.connect(my.gain);
+                my.gain.connect(my.context.destination);
+                my.gain.gain.value = 0;
+
+                if(! my.touchable){
+                    my.start();
+                }
+            });
+            if($.isFunction(this.onReady)){
+                this.initialized = true;
+                this.onReady();
+            }
+        };
+
+        api.start = function(){
+            if(!! this.source){
+                this.source.start(0);
+                if(this.touchable){
+                    window.removeEventListener("touchstart", this.start);
+                }
+            }
+        };
+
+        api.ready = function(callback){
+            if(this.initialized){
+                callback();
+            } else {
+                this.onReady = callback;
+            }
+            return this;
+        };
+
+        api.toggle = function(on){
+            if(this.gain){
+                this.gain.gain.value = on ? 1 : 0;
+            }
+        };
+
         api.on = function(){
             this.toggle(true);
         };
 
-        /**
-         * Stop tone by setting gain to 0
-         */
         api.off = function(){
             this.toggle(false);
         };
 
-        /**
-         * Toggle sound by boolean
-         * @param {Boolean} on
-         */
-        api.toggle = function(on){
-            this.gainNode.gain.value = on ? 1 : 0;
+        u = {
+
+            bindObject: function(obj, props){
+                props.forEach(function(name){
+                    obj[name] = obj[name].bind(obj);
+                });
+            }
+
         };
+
     }());
 
 

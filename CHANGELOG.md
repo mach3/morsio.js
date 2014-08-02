@@ -1,6 +1,11 @@
 
 # Change Log
 
+## Latest (2014-08-02)
+
+- Fix bug: morsio.Tone doesn't work in iOS
+- Replace mp3 to ogg
+
 ## 0.2.5 (2014-07-26)
 
 - Fix bug in `Tone.on|off()`
