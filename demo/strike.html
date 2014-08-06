@@ -1,55 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Demo: Strike</title>
-	<style>
+    <meta charset="UTF-8">
+    <title>Demo: Strike</title>
+    <style>
 
-	html, body {
-		position: relative;
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
+    html, body {
+        position: relative;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+    }
 
-	#rect {
-		width: 100%;
-		height: 100%;
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		background-color: #333;
-	}
+    #rect {
+        width: 100%;
+        height: 100%;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        background-color: #333;
+    }
 
-	#rect.on {
-		background-color: #fff;
-	}
+    #rect.on {
+        background-color: #fff;
+    }
 
-	</style>
+    </style>
 </head>
 <body>
 
-	<div id="rect"></div>
+    <div id="rect"></div>
 
     <script src="../bower_components/jquery/dist/jquery.js"></script>
     <script src="../src/morsio.js"></script>
 
     <script>
     (function(){
-	    var app = {};
+        var app = {};
 
-	    app.tone = new morsio.Tone();
-	    app.rect = $("#rect");
+        app.tone = new morsio.Tone();
+        app.rect = $("#rect");
+        $(document).on({
+            "keydown keyup touchstart touchend": function(e){
+                var on = (e.type === "keydown" || e.type === "touchstart");
+                app.tone.toggle(on);
+                app.rect.toggleClass("on", on);
+            }
+        })
 
-	    app.tone.load("/dist/morse.mp3")
-	    .ready(function(){
-	    	$(document).on({
-	    		"keydown keyup touchstart touchend": function(e){
-	    			var on = (e.type === "keydown" || e.type === "touchstart");
-	    			app.tone.toggle(on);
-	    			app.rect.toggleClass("on", on);
-	    		}
-	    	})
-	    });
     }());
     </script>
 

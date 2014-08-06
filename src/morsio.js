@@ -1,13 +1,110 @@
 (function($, global){
 
-    global.AudioContext = global.AudioContext || global.webkitAudioContext;
-
-
     /**
      * morsio
      * ------
      */
     var morsio = {};
+
+    /**
+     * Compatibility
+     * -------------
+     */
+    global.AudioContext = global.AudioContext
+        || global.webkitAudioContext;
+    global.AudioContext.prototype.createGain = global.AudioContext.prototype.createGain
+        || global.AudioContext.prototype.createGainNode;
+
+    /**
+     * Utilities
+     * ---------
+     */
+    morsio.utils = {
+
+        /**
+         * Get key name string by value from object
+         * @param {*} value
+         * @param {Object} obj
+         * @returns {String}
+         */
+        getKeyByValue: function(value, obj){
+            var key = null;
+            for(i in obj){
+                if(! obj.hasOwnProperty(i)){ continue; }
+                if(obj[i] === value){
+                    key = i;
+                    break;
+                }
+            }
+            return key;
+        },
+
+        /**
+         * Bind functions to object
+         * @param {Object} obj
+         * @param {Array} props
+         */
+        delegate: function(obj, props){
+            props.forEach(function(name){
+                obj[name] = obj[name].bind(obj);
+            });
+        },
+
+        /**
+         * Search the nearest value from array
+         * and returns as its index
+         * @param {Number} num
+         * @param {Array} nums
+         */
+        roundIndex: function(num, nums){
+            var diffs = [];
+            nums.forEach(function(n, i){
+                diffs[i] = Math.abs(num - n);
+            });
+            return diffs.indexOf(Math.min.apply(null, diffs));
+        },
+
+        /**
+         * Combine keys and values to an object
+         * @param {Array} keys
+         * @param {Array} values
+         * @return {Object}
+         */
+        combine: function(keys, values){
+            var o = [];
+            keys.forEach(function(key, i){
+                o[key] = values[i];
+            });
+            return o;
+        },
+
+        /**
+         * Configure options (use with `apply`)
+         * @param {Object|String} options|key
+         * @param {*} value
+         * @returns {*}
+         */
+        config: function(){
+            var args = arguments;
+            this.options = this.options || {};
+            switch($.type(args[0])){
+                case "string":
+                    if(args.length < 2){
+                        return this.options[args[0]];
+                    }
+                    this.options[args[0]] = args[1];
+                    return this;
+                case "object":
+                    this.options = $.extend(true, {}, this.options, args[0]);
+                    return this;
+                case "undefined":
+                    return this.options;
+                default: break;
+            }
+            return this;
+        }
+
+    };
 
     /**
      * Composer
@@ -19,7 +116,8 @@
     };
 
     (function(){
-        var u, api = Composer.prototype;
+        var api = Composer.prototype,
+            u = morsio.utils;
 
         /**
          * Defaults:
@@ -54,23 +152,9 @@
 
         /**
          * Configure options
-         * @param {String|Object} key|options
-         * @param {*} value
-         * @returns {*}
          */
-        api.config = function(key, value){
-            switch($.type(key)){
-                case "object":
-                    this.options = $.extend(true, {}, this.options, key);
-                    return this;
-                case "string":
-                    if(arguments.length > 1){
-                        this.options[key] = value;
-                        return this;
-                    }
-                    return this.options[key];
-                default: break;
-            }
+        api.config = function(){
+            return u.config.apply(this, arguments);
         };
 
         /**
@@ -260,28 +344,6 @@
             return this;
         };
 
-        /**
-         * Utility
-         */
-        u = {
-            /**
-             * Get key name string by value from object
-             * @param {*} value
-             * @param {Object} obj
-             * @returns {String}
-             */
-            getKeyByValue: function(value, obj){
-                var key = null;
-                for(i in obj){
-                    if(! obj.hasOwnProperty(i)){ continue; }
-                    if(obj[i] === value){
-                        key = i;
-                        break;
-                    }
-                }
-                return key;
-            }
-        };
     }());
     
     /**
@@ -294,119 +356,72 @@
     };
 
     (function(){
-        var u, api = Tone.prototype;
+        var api = Tone.prototype,
+            u = morsio.utils;
 
-        api.defaults = {
-            url: "morse.mp3"
-        };
-
-        api.options = null;
         api.touchable = (void 0 !== window.ontouchstart);
-
+        api.doc = null;
         api.context = null;
-        api.source = null;
+        api.osc = null;
         api.gain = null;
 
-        api.initialized = false;
-        api.onReady = $.noop;
+        /**
+         * Constructor
+         * @constructor
+         */
+        api._construct = function(){
+            u.delegate(this, ["onFirstTouch"]);
 
-        api._construct = function(options){
-            var my = this;
+            // nodes
+            this.doc = $(document);
+            this.context = new AudioContext();
+            this.osc = this.context.createOscillator();
+            this.gain = this.context.createGain();
+            this.gain.gain.value = 0;
 
-            u.bindObject(this, ["onLoad", "start"]);
-            this.config(this.defaults).config(options);
-        };
-
-        api.config = function(){
-            return Composer.prototype.config.apply(this, arguments);
-        };
-
-        api.load = function(url){
-            var res;
-
-            url = url || this.config("url");
-            res = new XMLHttpRequest();
-            res.open("GET", url);
-            res.responseType = "arraybuffer";
-            res.addEventListener("load", this.onLoad, false);
-            res.send();
+            // connection
+            this.osc.connect(this.gain);
+            this.gain.connect(this.context.destination);
 
             if(this.touchable){
-                window.addEventListener("touchstart", this.start, false);
+                return this.doc.on("touchstart", this.onFirstTouch);
             }
 
-            return this;
+            this.osc.start(0);
         };
 
-        api.onLoad = function(e){
-            var my = this;
-
-            this.context = new AudioContext();
-            this.context.decodeAudioData(e.target.response, function(buffer){
-
-                my.source = my.context.createBufferSource();
-                my.source.buffer = buffer;
-                my.source.loop = true;
-
-                my.gain = my.context.createGain();
-                my.source.connect(my.gain);
-                my.gain.connect(my.context.destination);
-                my.gain.gain.value = 0;
-
-                if(! my.touchable){
-                    my.start();
-                }
-            });
-            if($.isFunction(this.onReady)){
-                this.initialized = true;
-                this.onReady();
-            }
+        /**
+         * Handler for first touch event
+         */
+        api.onFirstTouch = function(){
+            this.osc.start(0);
+            this.doc.off("touchstart", this.onFirstTouch);
         };
 
-        api.start = function(){
-            if(!! this.source){
-                this.source.start(0);
-                if(this.touchable){
-                    window.removeEventListener("touchstart", this.start);
-                }
-            }
-        };
-
-        api.ready = function(callback){
-            if(this.initialized){
-                callback();
-            } else {
-                this.onReady = callback;
-            }
-            return this;
-        };
-
+        /**
+         * Toggle on/off of sound
+         * @param {Boolean} on
+         */
         api.toggle = function(on){
-            if(this.gain){
-                this.gain.gain.value = on ? 1 : 0;
-            }
+            this.gain.gain.value = on ? 1 : 0;
+            return this;
         };
 
+        /**
+         * Play sound
+         */
         api.on = function(){
-            this.toggle(true);
+            return this.toggle(true);
         };
 
+        /**
+         * Mute sound
+         */
         api.off = function(){
-            this.toggle(false);
-        };
-
-        u = {
-
-            bindObject: function(obj, props){
-                props.forEach(function(name){
-                    obj[name] = obj[name].bind(obj);
-                });
-            }
-
+            return this.toggle(false);
         };
 
     }());
-
 
     /**
      * Recorder
@@ -418,7 +433,8 @@
     };
 
     (function(){
-        var u, api = Recorder.prototype;
+        var api = Recorder.prototype,
+            u = morsio.utils;
 
         api.defaults = {
             mode: "alpha"
@@ -440,9 +456,8 @@
         /**
          * Configure options
          */
-        api.config = function(options){
-            this.options = $.extend(true, {}, this.options, options);
-            return this;
+        api.config = function(){
+            return u.config.apply(this, arguments);
         };
 
         /**
@@ -526,32 +541,6 @@
             return this.tones;
         };
 
-        /**
-         * Utilities
-         */
-        u = {
-            /**
-             * Search the nearest value from array
-             * and returns as its index
-             * @param {Number} num
-             * @param {Array} nums
-             */
-            roundIndex: function(num, nums){
-                var diffs = [];
-                nums.forEach(function(n, i){
-                    diffs[i] = Math.abs(num - n);
-                });
-                return diffs.indexOf(Math.min.apply(null, diffs));
-            },
-
-            combine: function(keys, values){
-                var o = [];
-                keys.forEach(function(key, i){
-                    o[key] = values[i];
-                });
-                return o;
-            }
-        };
     }());
 
     /**

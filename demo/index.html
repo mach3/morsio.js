@@ -59,28 +59,25 @@
 			e.preventDefault();
 			app.play($(this).find("[name=message]").val());
 		};
-		app.play = $.noop;
 
 		app.form = $("#form-demo");
 		app.form.on("submit", app.onSubmit);
 
 		app.tone = new morsio.Tone();
-		app.tone.load("../src/morse.mp3").ready(function(){
-			app.composer = new morsio.Composer({
-				mode: "kana",
-				process: function(on, length){
-					$("body").toggleClass("active", on);
-					app.tone.toggle(on);
-				},
-				complete: function(){
-					console.log("done");
-				}
-			});
-
-			app.play = function(message){
-				app.composer.parse(message).play();
-			};
+		app.composer = new morsio.Composer({
+			mode: "kana",
+			process: function(on, length){
+				$("body").toggleClass("active", on);
+				app.tone.toggle(on);
+			},
+			complete: function(){
+				console.log("done");
+			}
 		});
+
+		app.play = function(message){
+			app.composer.parse(message).play();
+		};
 
 	}());
 	</script>

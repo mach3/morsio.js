@@ -1,7 +1,13 @@
 
 # Change Log
 
-## Latest (2014-08-02)
+## Latest (2014-08-06)
+
+- Replace AudioBufferSourceNode to Oscillator  
+  (Delete sound file)
+- Refactor
+
+## 0.2.6 (2014-08-02)
 
 - Fix bug: morsio.Tone doesn't work in iOS
 - Replace mp3 to ogg

@@ -7,6 +7,12 @@ module.exports = function(grunt){
         {data: grunt.file.readJSON("package.json")}
     );
 
+    var files = [
+        "src/morsio.js",
+        "src/morsio.map.js",
+        "src/morsio.validation.js"
+    ];
+
     grunt.initConfig({
         connect: {
             dev: {
@@ -24,7 +30,7 @@ module.exports = function(grunt){
                     preserveComments: "some"
                 },
                 files: {
-                    "dist/morsio.min.js": ["src/morsio.js", "src/morsio.map.js", "src/morsio.validation.js"]
+                    "dist/morsio.min.js": files
                 }
             }
         },
@@ -34,22 +40,14 @@ module.exports = function(grunt){
                     banner: banner
                 },
                 files: {
-                    "dist/morsio.js": ["src/morsio.js", "src/morsio.map.js", "src/morsio.validation.js"]
+                    "dist/morsio.js": files
                 }
-            }
-        },
-        copy: {
-            dist: {
-                expand: true,
-                cwd: "src/",
-                src: "morse.mp3",
-                dest: "dist/"
             }
         }
     });
 
     grunt.registerTask("default", []);
-    grunt.registerTask("build", ["uglify:dist", "concat:dist", "copy:dist"]);
+    grunt.registerTask("build", ["uglify:dist", "concat:dist"]);
 
     grunt.loadNpmTasks("grunt-contrib-connect");
     grunt.loadNpmTasks("grunt-contrib-uglify");
