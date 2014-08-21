@@ -9,6 +9,7 @@
   "author": "mach3 <http://github.com/mach3>",
   "license": "MIT",
   "dependencies": {
+    "ghostsheet2": "https://github.com/mach3/ghostsheet2/archive/v2.0.1.tar.gz",
     "grunt-contrib-copy": "^0.5.0"
   },
   "devDependencies": {

@@ -548,4 +548,4 @@
      */
     global.morsio = morsio;
 
-}(jQuery, window));
+}(jQuery, this));

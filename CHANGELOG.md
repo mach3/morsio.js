@@ -1,7 +1,11 @@
 
 # Change Log
 
-## Latest (2014-08-06)
+## Latest (2014-08-22)
+
+- Fix map data and its generator
+
+## 0.2.7 (2014-08-06)
 
 - Replace AudioBufferSourceNode to Oscillator  
   (Delete sound file)
