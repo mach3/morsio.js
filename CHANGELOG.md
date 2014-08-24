@@ -1,7 +1,12 @@
 
 # Change Log
 
-## Latest (2014-08-22)
+## Latest (2014-08-24)
+
+- Fix compatibility
+- Update validation map
+
+## 0.2.8 (2014-08-22)
 
 - Fix map data and its generator
 
