@@ -11,9 +11,15 @@
      * -------------
      */
     global.AudioContext = global.AudioContext
-        || global.webkitAudioContext;
+    || global.webkitAudioContext;
+    morsio.enabled = !! global.AudioContext;
+
+    if(! morsio.enabled){
+        return global.morsio = morsio;
+    }
+
     global.AudioContext.prototype.createGain = global.AudioContext.prototype.createGain
-        || global.AudioContext.prototype.createGainNode;
+    || global.AudioContext.prototype.createGainNode;
 
     /**
      * Utilities
